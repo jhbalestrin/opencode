@@ -27,20 +27,25 @@ const mockUsersService: jest.Mocked<
 };
 ```
 
-### Repository Mocks
+### Mongoose Model mocks
+
+Prefer testing repositories with `mongodb-memory-server` (no Model mock). When mocking Model at the repository layer, use `getModelToken` and shared chain helpers — see [mongoose-testing.md](mongoose-testing.md).
 
 ```typescript
-// ✅ Typed mock factory
-function createMockRepository() {
-  return {
-    find: jest.fn(),
-    findOne: jest.fn(),
-    save: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-  };
-}
+import { getModelToken } from '@nestjs/mongoose';
+
+// ✅ Typed repository mock at service layer (preferred over Model mock)
+const mockUsersRepository = {
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  findByEmail: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+};
+
+// ✅ getModelToken for repository unit tests (when not using in-memory Mongo)
+{ provide: getModelToken(UserEntity.name), useValue: mockUserModel }
 ```
 
 ### ArgumentsHost / ExecutionContext
@@ -230,3 +235,4 @@ request(app.getHttpServer()).get('/users').expect(200);
 | `require()` in tests       | `import * as` + `jest.spyOn()`                |
 | `catch (e: any)`           | `catch (e: unknown)` + `(e as Error).message` |
 | E2E `INestApplication`     | `INestApplication<App>` + `import { App } from 'supertest/types'` |
+| Mongoose `.find().exec()`  | In-memory Mongo, mockingoose, or `mockExec` helper — see mongoose-testing.md |

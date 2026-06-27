@@ -1,11 +1,11 @@
 ---
 name: nestjs-testing
-description: Write unit and E2E tests with Jest, mocking strategies, error-path coverage, and database isolation in NestJS. Use when writing NestJS unit tests, controller error propagation tests, E2E error scenarios (400/404/409), supertest flows, TypeORM repository mocks, or configuring Test.createTestingModule.
+description: Write unit and E2E tests with Jest, Mongoose repository patterns, mocking strategies, and error-path coverage in NestJS. Use when writing NestJS unit tests, Mongoose repository tests with mongodb-memory-server or mockingoose, controller error propagation, E2E error scenarios (400/404/409), getModelToken mocks, or Test.createTestingModule.
 license: MIT
 compatibility: opencode
 metadata:
   source: HoangNguyen0403/agent-skills-standard
-  triggers: "**/*.spec.ts, test/**/*.e2e-spec.ts, Test.createTestingModule, supertest, jest, beforeEach, beforeAll, ConflictException, NotFoundException, ParseIntPipe"
+  triggers: "**/*.spec.ts, test/**/*.e2e-spec.ts, Test.createTestingModule, supertest, jest, getModelToken, mongodb-memory-server, mockingoose, beforeEach, beforeAll, ConflictException, NotFoundException, ParseObjectIdPipe"
 ---
 
 # NestJS Testing
@@ -17,6 +17,7 @@ metadata:
 ```
 src/**/*.spec.ts      # Unit tests (isolated logic)
 test/**/*.e2e-spec.ts # E2E tests (full app flows)
+test/helpers/         # Shared test utilities (mongo-memory, createTestApp, mock-mongoose-query)
 ```
 
 ## Unit Testing
@@ -25,6 +26,17 @@ test/**/*.e2e-spec.ts # E2E tests (full app flows)
 - **Mocks**: Mock all dependencies via `{ provide: X, useValue: mockX }`
 - **Pattern**: AAA (Arrange-Act-Assert)
 - **Cleanup**: Call `jest.clearAllMocks()` in `afterEach` (mandatory when using mocks)
+
+### Mongoose / repository layer
+
+| Layer | What to mock | Notes |
+| --- | --- | --- |
+| Controller | Service | Never inject Model |
+| Service | Repository | Never inject Model |
+| Repository | **Prefer in-memory Mongo** | `mongodb-memory-server` — see mongoose reference |
+| Repository (alt.) | Model via `getModelToken` | Use `mockingoose` or chain helpers — last resort |
+
+Do not mock Mongoose query chains at the service layer. See [references/mongoose-testing.md](references/mongoose-testing.md).
 
 ### Controller tests (mocked service)
 
@@ -41,9 +53,10 @@ Happy-path-only controller specs are incomplete. See [references/patterns.md](re
 
 ## E2E Testing
 
-- **Database**: Use real test DB (Docker). Never mock DB in E2E.
-- **State cleanup**: Mandatory when tests mutate shared state. Use transaction rollback or `TRUNCATE` in `afterEach`.
+- **Database**: Use real test DB — `mongodb-memory-server` for Mongo/Mongoose, or Docker. Never mock DB in E2E.
+- **State cleanup**: Mandatory when tests mutate shared state. Use `connection.dropDatabase()` in `afterEach` (Mongoose) or equivalent.
 - **App lifecycle**: Create app in `beforeAll`, close in `afterAll`. Match the project's reference E2E file (e.g. `test/app.e2e-spec.ts`).
+- **App config**: Apply the same global pipes/middleware as `main.ts` via a shared `configureApp()` / `createTestApp()` helper.
 - **Typing**: Use `INestApplication<App>` with `import { App } from 'supertest/types'` — avoids `no-unsafe-argument` on `request(app.getHttpServer())`.
 - **Guards**: Override via `.overrideGuard(X).useValue({ canActivate: () => true })`
 
@@ -57,7 +70,9 @@ Happy-path-only E2E suites are incomplete. For CRUD resources, also cover:
 | `GET /:id` | missing resource | `404` |
 | `PATCH /:id` | missing resource | `404` |
 | `DELETE /:id` | missing resource | `404` |
-| `GET/PATCH/DELETE /:id` | invalid id (`ParseIntPipe`) | `400` |
+| `GET/PATCH/DELETE /:id` | invalid id (pipe validation) | `400` |
+| `POST/PATCH` | invalid DTO (class-validator) | `400` |
+| `POST/PATCH` | unknown/extra body fields (`forbidNonWhitelisted`) | `400` |
 
 See [references/patterns.md](references/patterns.md#e2e-error-scenarios).
 
@@ -75,6 +90,7 @@ See [references/patterns.md](references/patterns.md#e2e-error-scenarios).
 - **E2E typing**: `let app: INestApplication<App>` — never plain `INestApplication` with supertest
 - **E2E lifecycle**: `beforeAll` / `afterAll` for app init and close — do not recreate the app per test unless the project reference E2E file does
 - **Match project reference**: Read existing `test/*.e2e-spec.ts` before writing new E2E files; follow its imports, typing, and lifecycle hooks
+- **Shared helpers**: Reuse `test/helpers/mongo-memory.ts`, `create-test-app.ts`, `mock-mongoose-query.ts` — do not duplicate setup
 
 ## Anti-Patterns
 
@@ -82,14 +98,18 @@ See [references/patterns.md](references/patterns.md#e2e-error-scenarios).
   When coverage requires it, use typed helper (see strict-typescript reference).
 - **No DB Mocks in E2E**: Use real DB with cleanup. Mocks defeat E2E purpose.
 - **No Shared State**: Call `jest.clearAllMocks()` in `afterEach`. Random failures otherwise.
-- **No Resource Leaks**: Always close app and DB in `afterAll`.
+- **No Resource Leaks**: Always close app and MongoMemoryServer in `afterAll`.
 - **No Happy-Path-Only Suites**: Controller unit tests missing error propagation, or E2E missing 400/404/409, are incomplete.
+- **No Manual Mongoose Chain Mocks Everywhere**: Use in-memory Mongo for repository tests, or shared chain helpers / mockingoose.
 
 ## When to use me
 
-Use this skill when writing or refactoring NestJS tests: unit specs, controller error propagation, E2E error scenarios (400/404/409), TypeORM repository mocks, controller/service TestingModule setup, or supertest HTTP assertions.
+Use this skill when writing or refactoring NestJS tests: unit specs, Mongoose repository tests, controller error propagation, E2E error scenarios (400/404/409), `getModelToken` / Model mocking, controller/service TestingModule setup, or supertest HTTP assertions.
 
 ## References
+
+Mongoose repository testing (in-memory Mongo, mockingoose, chain helpers):
+[references/mongoose-testing.md](references/mongoose-testing.md)
 
 Setup examples, mocking patterns, E2E flows, test builders, coverage config:
 [references/patterns.md](references/patterns.md)

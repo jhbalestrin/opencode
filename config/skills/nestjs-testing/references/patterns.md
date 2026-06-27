@@ -24,20 +24,49 @@ describe('UserService', () => {
 });
 ```
 
-### Mock Repository Factory
+### Service tests (mocked repository)
+
+When the service depends on a custom repository (not Mongoose Model directly), mock the repository:
 
 ```typescript
-function createMockRepository<T>() {
-  return {
-    find: jest.fn(),
-    findOne: jest.fn(),
-    save: jest.fn(),
+describe('UsersService', () => {
+  let service: UsersService;
+
+  const mockUsersRepository = {
+    findAll: jest.fn(),
+    findById: jest.fn(),
+    findByEmail: jest.fn(),
+    create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
-    create: jest.fn((dto) => dto),
   };
-}
+
+  beforeEach(async () => {
+    const module = await Test.createTestingModule({
+      providers: [
+        UsersService,
+        { provide: UsersRepository, useValue: mockUsersRepository },
+      ],
+    }).compile();
+    service = module.get(UsersService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should create a user', async () => {
+    mockUsersRepository.findByEmail.mockResolvedValue(null);
+    mockUsersRepository.create.mockResolvedValue(sampleDoc);
+
+    await service.create({ email: 'test@test.com', name: 'Test User' });
+
+    expect(mockUsersRepository.create).toHaveBeenCalled();
+  });
+});
 ```
+
+For Mongoose Model / repository layer testing, see [mongoose-testing.md](mongoose-testing.md).
 
 ### Testing Services
 
@@ -128,26 +157,26 @@ describe('Error propagation', () => {
 
   it('findOne should propagate NotFoundException', () => {
     mockUsersService.findOne.mockImplementation(() => {
-      throw new NotFoundException('User 999 not found');
+      throw new NotFoundException('User not found');
     });
 
-    expect(() => controller.findOne(999)).toThrow(NotFoundException);
+    expect(() => controller.findOne('507f1f77bcf86cd799439011')).toThrow(NotFoundException);
   });
 
   it('update should propagate NotFoundException', () => {
     mockUsersService.update.mockImplementation(() => {
-      throw new NotFoundException('User 999 not found');
+      throw new NotFoundException('User not found');
     });
 
-    expect(() => controller.update(999, { name: 'X' })).toThrow(NotFoundException);
+    expect(() => controller.update('507f1f77bcf86cd799439011', { name: 'X' })).toThrow(NotFoundException);
   });
 
   it('remove should propagate NotFoundException', () => {
     mockUsersService.remove.mockImplementation(() => {
-      throw new NotFoundException('User 999 not found');
+      throw new NotFoundException('User not found');
     });
 
-    expect(() => controller.remove(999)).toThrow(NotFoundException);
+    expect(() => controller.remove('507f1f77bcf86cd799439011')).toThrow(NotFoundException);
   });
 });
 ```
@@ -261,18 +290,22 @@ describe('Error cases', () => {
   });
 
   it('GET /users/:id missing → 404', () => {
-    return request(app.getHttpServer()).get('/users/999').expect(404);
+    return request(app.getHttpServer())
+      .get('/users/507f1f77bcf86cd799439011')
+      .expect(404);
   });
 
   it('PATCH /users/:id missing → 404', () => {
     return request(app.getHttpServer())
-      .patch('/users/999')
+      .patch('/users/507f1f77bcf86cd799439011')
       .send({ name: 'Ghost' })
       .expect(404);
   });
 
   it('DELETE /users/:id missing → 404', () => {
-    return request(app.getHttpServer()).delete('/users/999').expect(404);
+    return request(app.getHttpServer())
+      .delete('/users/507f1f77bcf86cd799439011')
+      .expect(404);
   });
 
   it('GET /users/:id invalid id → 400', () => {
@@ -292,7 +325,7 @@ describe('Error cases', () => {
 });
 ```
 
-Map exceptions to status codes: `NotFoundException` → 404, `ConflictException` → 409, `ParseIntPipe` failure → 400.
+Map exceptions to status codes: `NotFoundException` → 404, `ConflictException` → 409, invalid ObjectId / pipe failure → 400, class-validator failure → 400.
 
 When tests mutate shared in-memory or DB state within a suite, reset in `afterEach` (truncate/rollback). App lifecycle stays in `beforeAll` / `afterAll`.
 
@@ -335,32 +368,23 @@ describe('Auth Flow (e2e)', () => {
 });
 ```
 
-### Database Cleanup Strategies
+### Database Cleanup (Mongoose)
 
-#### Option 1: Transaction Rollback (Fast)
+Use `mongodb-memory-server` for E2E and repository tests. Reset collections between tests:
 
 ```typescript
-let queryRunner: QueryRunner;
-
-beforeEach(async () => {
-  queryRunner = dataSource.createQueryRunner();
-  await queryRunner.startTransaction();
-});
+import { getConnectionToken } from '@nestjs/mongoose';
+import { Connection } from 'mongoose';
 
 afterEach(async () => {
-  await queryRunner.rollbackTransaction();
-  await queryRunner.release();
+  const connection = app.get<Connection>(getConnectionToken());
+  await connection.dropDatabase();
 });
 ```
 
-#### Option 2: Explicit Truncate
+For repository-only specs (no HTTP app), get connection from the testing module the same way.
 
-```typescript
-afterEach(async () => {
-  await dataSource.query('TRUNCATE TABLE "orders" CASCADE');
-  await dataSource.query('TRUNCATE TABLE "users" CASCADE');
-});
-```
+See [mongoose-testing.md](mongoose-testing.md) for full scaffold and helpers.
 
 ### Override Providers
 
@@ -449,7 +473,8 @@ describe('UserService', () => {
 3. **Cleanup**: Always use `afterEach` to clear mocks
 4. **Isolation**: Each test should run independently
 5. **Fast Unit Tests**: Run in parallel with `--maxWorkers=4`
-6. **Real E2E**: Use actual DB (Docker/in-memory SQLite)
+6. **Repository tests**: Prefer `mongodb-memory-server`; fallback to `mockingoose` or chain helpers
+7. **Real E2E**: Use in-memory Mongo or Docker — never mock Mongoose in E2E
 
 ## Common Mistakes
 
@@ -459,7 +484,8 @@ describe('UserService', () => {
 | Mocking DB in E2E | Use real test database |
 | Shared test state | Clear mocks in afterEach |
 | No resource cleanup | Close app/DB in afterAll |
-| Over-mocking | Balance mocks with integration tests |
+| Mocking Mongoose chains inline | Use in-memory Mongo, mockingoose, or shared helpers — see mongoose-testing.md |
+| Mocking Model at service layer | Mock repository instead |
 | Happy-path-only controller specs | Add error propagation tests for create/findOne/update/remove |
 | Happy-path-only E2E | Add 400/404/409 error scenarios |
 | Plain `INestApplication` in E2E | Use `INestApplication<App>` from supertest/types |
