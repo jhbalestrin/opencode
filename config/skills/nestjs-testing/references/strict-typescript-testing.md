@@ -200,6 +200,23 @@ observable$.subscribe({
 });
 ```
 
+## 10. E2E Supertest Typing
+
+Plain `INestApplication` makes `app.getHttpServer()` return a loosely typed value, triggering `@typescript-eslint/no-unsafe-argument` when passed to `request()`.
+
+```typescript
+// ❌ WRONG — no-unsafe-argument on request(app.getHttpServer())
+import { INestApplication } from '@nestjs/common';
+let app: INestApplication;
+
+// ✅ CORRECT — match project reference E2E file (e.g. test/app.e2e-spec.ts)
+import { INestApplication } from '@nestjs/common';
+import { App } from 'supertest/types';
+let app: INestApplication<App>;
+
+request(app.getHttpServer()).get('/users').expect(200);
+```
+
 ## Quick Reference Cheat Sheet
 
 | Problem                    | Pattern                                       |
@@ -212,3 +229,4 @@ observable$.subscribe({
 | `eslint-disable`           | **NEVER** — fix the underlying type issue     |
 | `require()` in tests       | `import * as` + `jest.spyOn()`                |
 | `catch (e: any)`           | `catch (e: unknown)` + `(e as Error).message` |
+| E2E `INestApplication`     | `INestApplication<App>` + `import { App } from 'supertest/types'` |

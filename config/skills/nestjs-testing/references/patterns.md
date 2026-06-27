@@ -71,6 +71,89 @@ describe('AuthService', () => {
 });
 ```
 
+### Testing Controllers (Mocked Service)
+
+```typescript
+describe('UsersController', () => {
+  let controller: UsersController;
+
+  const mockUsersService = {
+    findAll: jest.fn(),
+    findOne: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
+  };
+
+  beforeEach(async () => {
+    const module = await Test.createTestingModule({
+      controllers: [UsersController],
+      providers: [{ provide: UsersService, useValue: mockUsersService }],
+    }).compile();
+
+    controller = module.get(UsersController);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should delegate findAll to service', () => {
+    const users = [{ id: 1, email: 'a@test.com', name: 'A' }];
+    mockUsersService.findAll.mockReturnValue(users);
+
+    expect(controller.findAll()).toEqual(users);
+    expect(mockUsersService.findAll).toHaveBeenCalled();
+  });
+});
+```
+
+### Controller Error Propagation
+
+When the controller delegates to the service without catching, mock the service to throw and assert the controller propagates the exception. Required for `create`, `findOne`, `update`, and `remove`.
+
+```typescript
+import { ConflictException, NotFoundException } from '@nestjs/common';
+
+describe('Error propagation', () => {
+  it('create should propagate ConflictException', () => {
+    mockUsersService.create.mockImplementation(() => {
+      throw new ConflictException('Email already registered');
+    });
+    const dto = { email: 'dup@test.com', name: 'Dup' };
+
+    expect(() => controller.create(dto)).toThrow(ConflictException);
+    expect(mockUsersService.create).toHaveBeenCalledWith(dto);
+  });
+
+  it('findOne should propagate NotFoundException', () => {
+    mockUsersService.findOne.mockImplementation(() => {
+      throw new NotFoundException('User 999 not found');
+    });
+
+    expect(() => controller.findOne(999)).toThrow(NotFoundException);
+  });
+
+  it('update should propagate NotFoundException', () => {
+    mockUsersService.update.mockImplementation(() => {
+      throw new NotFoundException('User 999 not found');
+    });
+
+    expect(() => controller.update(999, { name: 'X' })).toThrow(NotFoundException);
+  });
+
+  it('remove should propagate NotFoundException', () => {
+    mockUsersService.remove.mockImplementation(() => {
+      throw new NotFoundException('User 999 not found');
+    });
+
+    expect(() => controller.remove(999)).toThrow(NotFoundException);
+  });
+});
+```
+
+Prefer typed mock object literals over `Partial<jest.Mocked<T>>` with repeated `as jest.Mock` casts.
+
 ### Testing Guards
 
 ```typescript
@@ -129,11 +212,95 @@ const admin = new UserBuilder().withRole('ADMIN').build();
 
 ## E2E Testing Patterns
 
-### Complete User Flow
+### E2E Scaffold (Match Project Reference)
+
+Before writing E2E tests, read the project's existing `test/*.e2e-spec.ts` and match its imports, typing, and lifecycle hooks.
+
+```typescript
+import { INestApplication } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import request from 'supertest';
+import { App } from 'supertest/types';
+import { AppModule } from '../src/app.module';
+
+describe('Users (e2e)', () => {
+  let app: INestApplication<App>;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  // tests...
+});
+```
+
+**Do not** use plain `INestApplication` — it triggers `@typescript-eslint/no-unsafe-argument` on `request(app.getHttpServer())`.
+
+**Do not** recreate the app in `beforeEach` unless the project reference E2E file does. Default is `beforeAll` / `afterAll`.
+
+### E2E Error Scenarios
+
+Happy-path CRUD tests alone are incomplete. Add a `describe('Error cases')` block:
+
+```typescript
+describe('Error cases', () => {
+  const dto = { email: 'test@example.com', name: 'Test User' };
+
+  it('POST /users duplicate email → 409', async () => {
+    await request(app.getHttpServer()).post('/users').send(dto).expect(201);
+    await request(app.getHttpServer()).post('/users').send(dto).expect(409);
+  });
+
+  it('GET /users/:id missing → 404', () => {
+    return request(app.getHttpServer()).get('/users/999').expect(404);
+  });
+
+  it('PATCH /users/:id missing → 404', () => {
+    return request(app.getHttpServer())
+      .patch('/users/999')
+      .send({ name: 'Ghost' })
+      .expect(404);
+  });
+
+  it('DELETE /users/:id missing → 404', () => {
+    return request(app.getHttpServer()).delete('/users/999').expect(404);
+  });
+
+  it('GET /users/:id invalid id → 400', () => {
+    return request(app.getHttpServer()).get('/users/abc').expect(400);
+  });
+
+  it('PATCH /users/:id invalid id → 400', () => {
+    return request(app.getHttpServer())
+      .patch('/users/abc')
+      .send({ name: 'Bad' })
+      .expect(400);
+  });
+
+  it('DELETE /users/:id invalid id → 400', () => {
+    return request(app.getHttpServer()).delete('/users/abc').expect(400);
+  });
+});
+```
+
+Map exceptions to status codes: `NotFoundException` → 404, `ConflictException` → 409, `ParseIntPipe` failure → 400.
+
+When tests mutate shared in-memory or DB state within a suite, reset in `afterEach` (truncate/rollback). App lifecycle stays in `beforeAll` / `afterAll`.
+
+### Complete User Flow (Auth Example)
 
 ```typescript
 describe('Auth Flow (e2e)', () => {
-  let app: INestApplication;
+  let app: INestApplication<App>;
   let accessToken: string;
 
   beforeAll(async () => {
@@ -293,3 +460,7 @@ describe('UserService', () => {
 | Shared test state | Clear mocks in afterEach |
 | No resource cleanup | Close app/DB in afterAll |
 | Over-mocking | Balance mocks with integration tests |
+| Happy-path-only controller specs | Add error propagation tests for create/findOne/update/remove |
+| Happy-path-only E2E | Add 400/404/409 error scenarios |
+| Plain `INestApplication` in E2E | Use `INestApplication<App>` from supertest/types |
+| App recreated per E2E test | Use beforeAll/afterAll unless project reference does otherwise |
