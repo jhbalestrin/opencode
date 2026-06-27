@@ -41,6 +41,14 @@ Existing reference tests:
 
 Global skill: `nestjs-testing` (from this repo's `config/skills/` via `make sync`).
 
+Slash command (after `make sync` in the opencode dotfiles repo):
+
+```text
+/test-playground
+```
+
+Runs the nestjs-testing workflow to reach 80% unit coverage. Use from this directory.
+
 Example prompt:
 
 ```text
