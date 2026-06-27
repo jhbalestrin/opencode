@@ -9,14 +9,14 @@
         "baseURL": "http://172.24.32.1:1234/v1"
       },
       "models": {
-        "qwen/qwen3.5-27B": {
-          "name": "qwen3.6"
+        "qwen/qwen3.6-27b": {
+          "name": "Qwen 3.6 27B",
+          "limit": {
+            "context": 110000
+          }
         }
-      },
-      "limits": {
-        "context": 110000
       }
     }
   },
-  "model": "lmstudio/qwen/qwen3.5-9b"
+  "model": "lmstudio/qwen/qwen3.6-27b"
 }
