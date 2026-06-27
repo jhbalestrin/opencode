@@ -6,3 +6,8 @@ node_modules/
 *.swp
 *.bak
 *~
+
+# testing playgrounds
+testing_packages/**/node_modules/
+testing_packages/**/dist/
+testing_packages/**/coverage/
