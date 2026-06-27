@@ -5,7 +5,7 @@ license: MIT
 compatibility: opencode
 metadata:
   source: HoangNguyen0403/agent-skills-standard
-  triggers: "**/*.spec.ts, test/**/*.e2e-spec.ts, Test.createTestingModule, supertest, jest, getModelToken, mongodb-memory-server, mockingoose, beforeEach, beforeAll, ConflictException, NotFoundException, ParseObjectIdPipe"
+  triggers: "**/*.spec.ts, test/**/*.e2e-spec.ts, Test.createTestingModule, supertest, jest, getModelToken, mongodb-memory-server, mockingoose, UserDocument, ProfileDocument, beforeEach, beforeAll, ConflictException, NotFoundException, ParseObjectIdPipe"
 ---
 
 # NestJS Testing
@@ -29,12 +29,13 @@ test/helpers/         # Shared test utilities (mongo-memory, createTestApp, mock
 
 ### Mongoose / repository layer
 
-| Layer | What to mock | Notes |
-| --- | --- | --- |
-| Controller | Service | Never inject Model |
-| Service | Repository | Never inject Model |
-| Repository | **Prefer in-memory Mongo** | `mongodb-memory-server` — see mongoose reference |
-| Repository (alt.) | Model via `getModelToken` | Use `mockingoose` or chain helpers — last resort |
+| Layer | What to mock | Return type to mock | Assert on |
+| --- | --- | --- | --- |
+| Controller | Service | `User` / `Profile` (API DTO) | Service return value |
+| Service | Repository | **`UserDocument` / `ProfileDocument`** | Mapped **`User` / `Profile`** after `toUser` / `toProfile` |
+| Repository | **Prefer in-memory Mongo** | Real documents | Document fields |
+
+**Critical**: When mocking a custom repository in service specs, mock **documents** (`_id`, `ObjectId` refs), not API DTOs (`id` string). See [references/strict-typescript-testing.md](references/strict-typescript-testing.md#11-mongoose-document-vs-api-dto-mocks).
 
 Do not mock Mongoose query chains at the service layer. See [references/mongoose-testing.md](references/mongoose-testing.md).
 
@@ -81,6 +82,7 @@ See [references/patterns.md](references/patterns.md#e2e-error-scenarios).
 - **No `any`**: Use typed objects, `jest.Mocked<T>`, or `as unknown as T`. Never `as any`.
 - **No `eslint-disable`**: Fix underlying type issue. No exceptions.
 - **Verify DTO shapes**: Read actual DTO class before writing mock data.
+- **Document vs DTO**: Repository mocks use `XxxDocument`; service/controller assertions use `Xxx` API type — never confuse `{ id }` with `{ _id }`.
 - **Cast Jest matchers**: Nested `expect.anything()` → `expect.anything() as unknown`.
 - **No unused vars**: Only declare variables if referenced in assertions or setup.
 
@@ -100,6 +102,7 @@ See [references/patterns.md](references/patterns.md#e2e-error-scenarios).
 - **No Shared State**: Call `jest.clearAllMocks()` in `afterEach`. Random failures otherwise.
 - **No Resource Leaks**: Always close app and MongoMemoryServer in `afterAll`.
 - **No Happy-Path-Only Suites**: Controller unit tests missing error propagation, or E2E missing 400/404/409, are incomplete.
+- **No DTO Shape in Repository Mocks**: `{ id, email, name }` is not a `UserDocument` — use document factories (see strict-typescript §11).
 - **No Manual Mongoose Chain Mocks Everywhere**: Use in-memory Mongo for repository tests, or shared chain helpers / mockingoose.
 
 ## When to use me

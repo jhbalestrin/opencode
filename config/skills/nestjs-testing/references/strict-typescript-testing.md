@@ -48,6 +48,39 @@ const mockUsersRepository = {
 { provide: getModelToken(UserEntity.name), useValue: mockUserModel }
 ```
 
+### Mongoose Document vs API DTO mocks
+
+When a service calls `repository.findById()` then maps with `toUser(doc)` / `toProfile(doc)`:
+
+- **Mock repository returns** → `UserDocument` / `ProfileDocument` (has `_id`, `ObjectId` refs)
+- **Assert service returns** → `User` / `Profile` (has string `id`, string `userId`)
+
+```typescript
+// ❌ WRONG — Profile API shape where ProfileDocument is required
+repository.findAll.mockResolvedValue([{ id: '1', userId: '2', bio: 'Test' }]);
+// TS: not assignable to ProfileDocument[]
+// Runtime: toProfile crashes on doc._id.toString()
+
+// ✅ CORRECT — document factory + assert mapped DTO
+const doc = createMockProfileDocument({ bio: 'Test' });
+repository.findAll.mockResolvedValue([doc]);
+
+const result = await service.findAll();
+expect(result).toEqual([{ id: doc._id.toString(), userId: doc.userId.toString(), bio: 'Test' }]);
+```
+
+**Workflow before writing service specs:**
+
+1. Read `*.repository.ts` → note return types (`UserDocument`, not `User`)
+2. Read `mappers/*.mapper.ts` → note `_id` → `id` mapping
+3. Add or reuse `createMockXxxDocument()` helper with `as unknown as XxxDocument`
+4. Mock repository with documents; mock `UsersService` with `User` DTOs
+5. Assert on service output (mapped DTO), not on raw mock passed to repository
+
+Do not stub mappers unless testing mapper logic in isolation — use real `toUser` / `toProfile` with document factories.
+
+Full examples: [mongoose-testing.md](mongoose-testing.md#service-specs-mock-documents-assert-dtos).
+
 ### ArgumentsHost / ExecutionContext
 
 ```typescript
@@ -222,6 +255,39 @@ let app: INestApplication<App>;
 request(app.getHttpServer()).get('/users').expect(200);
 ```
 
+## 11. Mongoose Document vs API DTO Mocks
+
+See also [mongoose-testing.md § Service specs](mongoose-testing.md#service-specs-mock-documents-assert-dtos).
+
+Three-layer type stack in typical NestJS + Mongoose apps:
+
+| Layer | Type | Key fields |
+| --- | --- | --- |
+| Mongoose schema | `UserEntity` | `@Prop()` definitions |
+| Repository return | `UserDocument` | `_id: ObjectId`, entity fields |
+| Service/API return | `User` | `id: string`, entity fields |
+
+**Rule**: Match mock shape to **what that layer actually returns**, not what the HTTP client sees.
+
+```typescript
+import { Types } from 'mongoose';
+import { UserDocument } from './schemas/user.schema';
+
+function createMockUserDocument(
+  overrides: Partial<{ id: string; email: string; name: string }> = {},
+): UserDocument {
+  return {
+    _id: new Types.ObjectId(overrides.id ?? '507f1f77bcf86cd799439011'),
+    email: overrides.email ?? 'test@example.com',
+    name: overrides.name ?? 'Test User',
+  } as unknown as UserDocument;
+}
+```
+
+For refs (`userId` on profiles), use `new Types.ObjectId(...)` — not a plain string on the document.
+
+**Do not** abandon repository mocks because of TS errors — fix the shape, not the architecture.
+
 ## Quick Reference Cheat Sheet
 
 | Problem                    | Pattern                                       |
@@ -236,3 +302,6 @@ request(app.getHttpServer()).get('/users').expect(200);
 | `catch (e: any)`           | `catch (e: unknown)` + `(e as Error).message` |
 | E2E `INestApplication`     | `INestApplication<App>` + `import { App } from 'supertest/types'` |
 | Mongoose `.find().exec()`  | In-memory Mongo, mockingoose, or `mockExec` helper — see mongoose-testing.md |
+| Repository mock in service spec | `createMockXxxDocument()` + `as unknown as XxxDocument` |
+| `{ id: '1' }` on repository mock | Use `{ _id: new Types.ObjectId('...') }` — document not DTO |
+| `toProfile` / `toUser` runtime error | Mock was API DTO shape, not document |

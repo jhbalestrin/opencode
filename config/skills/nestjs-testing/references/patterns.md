@@ -26,7 +26,7 @@ describe('UserService', () => {
 
 ### Service tests (mocked repository)
 
-When the service depends on a custom repository (not Mongoose Model directly), mock the repository:
+When the service depends on a custom repository (not Mongoose Model directly), mock the repository with **document** shapes. Assert on mapped **API DTOs**. See [mongoose-testing.md § Service specs](mongoose-testing.md#service-specs-mock-documents-assert-dtos).
 
 ```typescript
 describe('UsersService', () => {
@@ -56,11 +56,13 @@ describe('UsersService', () => {
   });
 
   it('should create a user', async () => {
+    const doc = createMockUserDocument();
     mockUsersRepository.findByEmail.mockResolvedValue(null);
-    mockUsersRepository.create.mockResolvedValue(sampleDoc);
+    mockUsersRepository.create.mockResolvedValue(doc);
 
-    await service.create({ email: 'test@test.com', name: 'Test User' });
+    const result = await service.create({ email: 'test@test.com', name: 'Test User' });
 
+    expect(result).toEqual(toExpectedUser(doc));
     expect(mockUsersRepository.create).toHaveBeenCalled();
   });
 });

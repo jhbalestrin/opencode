@@ -16,6 +16,133 @@ Patterns for testing NestJS apps using `@nestjs/mongoose` and a repository layer
 
 **Do not** hand-mock `.find().sort().exec()` in every test — use a shared helper or in-memory Mongo.
 
+---
+
+## Service specs: mock documents, assert DTOs
+
+When the service maps repository documents through a mapper (`toUser`, `toProfile`), repository mocks must return **document** shapes. Service assertions use **API DTO** shapes.
+
+```
+Repository.findById() → UserDocument { _id, email, name }
+        ↓ toUser(doc)
+Service.findOne()     → User { id, email, name }
+```
+
+### Document factory helpers
+
+Place in `test/helpers/` or next to the spec. Cast through `unknown` — never `as any`.
+
+```typescript
+// test/helpers/mock-documents.ts
+import { Types } from 'mongoose';
+import { UserDocument } from '../../src/users/schemas/user.schema';
+import { ProfileDocument } from '../../src/profiles/schemas/profile.schema';
+
+export function createMockUserDocument(
+  overrides: { id?: string; email?: string; name?: string } = {},
+): UserDocument {
+  return {
+    _id: new Types.ObjectId(overrides.id ?? '507f1f77bcf86cd799439011'),
+    email: overrides.email ?? 'test@example.com',
+    name: overrides.name ?? 'Test User',
+  } as unknown as UserDocument;
+}
+
+export function createMockProfileDocument(
+  overrides: { id?: string; userId?: string; bio?: string } = {},
+): ProfileDocument {
+  return {
+    _id: new Types.ObjectId(overrides.id ?? '507f1f77bcf86cd799439012'),
+    userId: new Types.ObjectId(overrides.userId ?? '507f1f77bcf86cd799439011'),
+    bio: overrides.bio ?? 'Test bio',
+  } as unknown as ProfileDocument;
+}
+
+/** Expected API shape after toUser(doc) */
+export function toExpectedUser(doc: UserDocument) {
+  return {
+    id: doc._id.toString(),
+    email: doc.email,
+    name: doc.name,
+  };
+}
+
+/** Expected API shape after toProfile(doc) */
+export function toExpectedProfile(doc: ProfileDocument) {
+  return {
+    id: doc._id.toString(),
+    userId: doc.userId.toString(),
+    bio: doc.bio,
+  };
+}
+```
+
+### ProfilesService example (correct)
+
+```typescript
+const mockRepository = {
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  findByUserId: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+};
+
+const mockUsersService = { findOne: jest.fn() };
+
+// providers: ProfilesService, { provide: ProfilesRepository, useValue: mockRepository }, ...
+
+it('findAll returns mapped profiles', async () => {
+  const doc = createMockProfileDocument({ bio: 'Hello' });
+  mockRepository.findAll.mockResolvedValue([doc]);
+
+  const result = await service.findAll();
+
+  expect(result).toEqual([toExpectedProfile(doc)]);
+});
+
+it('create validates user then maps document', async () => {
+  const dto = { userId: '507f1f77bcf86cd799439011', bio: 'New bio' };
+  const user = { id: dto.userId, email: 'a@test.com', name: 'A' };
+  const doc = createMockProfileDocument({ userId: dto.userId, bio: dto.bio });
+
+  mockUsersService.findOne.mockResolvedValue(user);
+  mockRepository.findByUserId.mockResolvedValue(null);
+  mockRepository.create.mockResolvedValue(doc);
+
+  const result = await service.create(dto);
+
+  expect(result).toEqual(toExpectedProfile(doc));
+});
+```
+
+### Common error (do not do this)
+
+```typescript
+// ❌ WRONG — Profile DTO passed to repository mock; TS error + runtime crash in toProfile
+repository.findAll.mockResolvedValue([{ id: '1', userId: '2', bio: 'Test' }]);
+repository.findById.mockResolvedValue({ id: '1', userId: '2', bio: 'Test' });
+
+// ❌ WRONG — asserting DTO when service never returned unmapped mock
+expect(result).toEqual(mockProfile);
+```
+
+`toProfile` calls `doc._id.toString()` — plain `{ id: '1' }` objects fail at runtime even if forced through types.
+
+### When each type applies
+
+| Mock target | Use type | Example fields |
+| --- | --- | --- |
+| `UsersRepository.findById` | `UserDocument \| null` | `_id`, `email`, `name` |
+| `ProfilesRepository.findByUserId` | `ProfileDocument \| null` | `_id`, `userId` (ObjectId), `bio` |
+| `UsersService.findOne` | `User` | `id` (string), `email`, `name` |
+| Controller / HTTP assertions | `User` / `Profile` | `id`, not `_id` |
+
+Read the mapper file (`mappers/*.mapper.ts`) before writing service specs — it defines the document → DTO field mapping.
+
+---
+
 ## Option A (recommended): In-memory Mongo for repository tests
 
 Fast, reliable, no chain mocking. Uses `mongodb-memory-server` (devDependency).
@@ -271,3 +398,6 @@ mockUserModel.find.mockReturnValue(
 | ObjectId query mismatch | Cast string ids: `{ userId: new Types.ObjectId(id) }` |
 | Stale data between repo tests | `connection.dropDatabase()` in `afterEach` |
 | E2E missing ValidationPipe | Share `configureApp()` via `createTestApp` helper |
+| Repository mock uses `{ id }` in service spec | Use document factory with `_id` + `ObjectId` — see Service specs section |
+| Service spec asserts unmapped mock object | Assert mapped DTO via `toExpectedUser(doc)` / `toExpectedProfile(doc)` |
+| "Can't mock repository due to types" | Wrong shape — not a DI issue; use document factories |
