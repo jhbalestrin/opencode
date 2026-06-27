@@ -4,7 +4,9 @@ CONFIG_DEST := $(HOME)/.config/opencode
 
 SKIP_PATTERNS := -name node_modules -o -name '*.swp' -o -name '*.bak'
 
-.PHONY: help check-ownership bootstrap link install-plugins install-graphify sync status unlink clean-stale
+GRAPHIFY_PKG := graphifyy[sql,mcp]
+
+.PHONY: help check-ownership bootstrap link install-plugins install-graphify refresh-graphify-config update-graphify sync status unlink clean-stale
 
 help:
 	@echo "OpenCode dotfiles — manage ~/.config/opencode via symlinks"
@@ -17,6 +19,7 @@ help:
 	@echo "  make clean-stale     Remove orphan symlinks (source deleted from repo)"
 	@echo "  make install-plugins npm ci in ~/.config/opencode"
 	@echo "  make install-graphify Install graphifyy CLI + OpenCode skill"
+	@echo "  make update-graphify  Upgrade graphifyy and refresh skill/plugin in config/"
 	@echo "  make check-ownership Verify config dir is writable"
 
 check-ownership:
@@ -81,9 +84,33 @@ install-graphify:
 		echo "error: uv not found — install from https://docs.astral.sh/uv/"; \
 		exit 1 \
 	)
-	uv tool install "graphifyy[sql,mcp]"
-	graphify install --platform opencode
-	@echo "graphify installed — copy new files from ~/.config/opencode/skills/graphify and plugins/ into config/, then make sync"
+	uv tool install "$(GRAPHIFY_PKG)"
+	@$(MAKE) refresh-graphify-config sync
+	@graphify --version
+	@echo "graphify installed — restart OpenCode to load changes"
+
+refresh-graphify-config:
+	@command -v graphify >/dev/null 2>&1 || ( \
+		echo "error: graphify not on PATH — run make install-graphify first"; \
+		exit 1 \
+	)
+	@staging=$$(mktemp -d); \
+	trap 'rm -rf "$$staging"' EXIT; \
+	cd "$$staging" && graphify install --platform opencode; \
+	rm -rf "$(CONFIG_SRC)/skills/graphify"; \
+	cp -a "$(HOME)/.config/opencode/skills/graphify" "$(CONFIG_SRC)/skills/graphify"; \
+	cp "$$staging/.opencode/plugins/graphify.js" "$(CONFIG_SRC)/plugins/graphify.js"; \
+	echo "refreshed config/skills/graphify and config/plugins/graphify.js"
+
+update-graphify:
+	@command -v uv >/dev/null 2>&1 || ( \
+		echo "error: uv not found — install from https://docs.astral.sh/uv/"; \
+		exit 1 \
+	)
+	uv tool upgrade graphifyy 2>/dev/null || uv tool install "$(GRAPHIFY_PKG)"
+	@$(MAKE) refresh-graphify-config sync
+	@graphify --version
+	@echo "graphify updated — restart OpenCode to load changes"
 
 sync: link install-plugins
 	@rm -f "$(CONFIG_DEST)/.opencode.json.swp" "$(CONFIG_DEST)/opencode.json.bak" 2>/dev/null || true

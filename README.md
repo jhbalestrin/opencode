@@ -29,6 +29,7 @@ make sync        # link + npm ci
 |---------|-------------|
 | `make sync` | Recreate symlinks and run `npm ci` (primary day-to-day command) |
 | `make install-graphify` | Install `graphifyy` CLI and refresh the OpenCode skill |
+| `make update-graphify` | Upgrade `graphifyy` and refresh skill/plugin in `config/` |
 | `make status` | Show symlink health and drift |
 | `make bootstrap` | Import existing `~/.config/opencode` into `config/` |
 | `make unlink` | Remove symlinks managed by this repo |
@@ -69,7 +70,11 @@ graphify query "how does auth work?"     # after graph exists
 
 Graph artifacts go in `graphify-out/` inside each project. Commit `graphify-out/` for team sharing; keep `graphify-out/cost.json` gitignored.
 
-Upgrade Graphify: `uv tool upgrade graphifyy` then re-run `graphify install --platform opencode` and copy any changed skill files into `config/`.
+Upgrade Graphify:
+
+```bash
+make update-graphify
+```
 
 ## Secrets
 
