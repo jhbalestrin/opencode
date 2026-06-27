@@ -1,0 +1,261 @@
+{
+  "communities": {
+    "0": [
+      "database_database_module",
+      "database_database_module_databasemodule",
+      "middleware_json_body_middleware",
+      "middleware_json_body_middleware_body_methods",
+      "middleware_json_body_middleware_jsonbodymiddleware",
+      "middleware_json_body_middleware_jsonbodymiddleware_use",
+      "middleware_json_body_middleware_spec",
+      "middleware_request_context_middleware",
+      "middleware_request_context_middleware_requestcontextmiddleware",
+      "middleware_request_context_middleware_requestcontextmiddleware_use",
+      "middleware_request_context_middleware_spec",
+      "middleware_request_logger_middleware",
+      "middleware_request_logger_middleware_requestloggermiddleware",
+      "middleware_request_logger_middleware_requestloggermiddleware_use",
+      "middleware_request_logger_middleware_spec",
+      "profiles_profiles_module_profilesmodule",
+      "src_app_controller",
+      "src_app_controller_appcontroller",
+      "src_app_controller_appcontroller_constructor",
+      "src_app_controller_appcontroller_gethello",
+      "src_app_controller_spec",
+      "src_app_module",
+      "src_app_service",
+      "src_app_service_appservice",
+      "src_app_service_appservice_gethello",
+      "types_request_context",
+      "types_request_context_asrequestwithcontext",
+      "types_request_context_requestwithcontext",
+      "users_users_module_usersmodule"
+    ],
+    "1": [
+      "helpers_create_test_app",
+      "helpers_create_test_app_createtestapp",
+      "helpers_mongo_memory",
+      "helpers_mongo_memory_startmongomemoryserver",
+      "helpers_parse_response",
+      "helpers_parse_response_isrecord",
+      "helpers_parse_response_parseprofilebody",
+      "helpers_parse_response_parseuserbody",
+      "helpers_parse_response_readstring",
+      "src_app_module_appmodule",
+      "src_app_module_appmodule_configure",
+      "src_main",
+      "src_main_bootstrap",
+      "src_setup_app",
+      "src_setup_app_configureapp",
+      "test_app_e2e_spec",
+      "test_profiles_e2e_spec",
+      "test_users_e2e_spec",
+      "test_users_error_e2e_spec"
+    ],
+    "2": [
+      "dto_profile_dto_profile",
+      "mappers_profile_mapper",
+      "mappers_profile_mapper_spec",
+      "mappers_profile_mapper_toprofile",
+      "profiles_profiles_service_profilesservice",
+      "profiles_profiles_service_profilesservice_create",
+      "profiles_profiles_service_profilesservice_findall",
+      "profiles_profiles_service_profilesservice_findbyuserid",
+      "profiles_profiles_service_profilesservice_findone",
+      "profiles_profiles_service_profilesservice_remove",
+      "profiles_profiles_service_profilesservice_update"
+    ],
+    "3": [
+      "dto_user_dto_user",
+      "mappers_user_mapper",
+      "mappers_user_mapper_spec",
+      "mappers_user_mapper_touser",
+      "users_users_service_usersservice",
+      "users_users_service_usersservice_create",
+      "users_users_service_usersservice_findall",
+      "users_users_service_usersservice_findone",
+      "users_users_service_usersservice_remove",
+      "users_users_service_usersservice_update"
+    ],
+    "4": [
+      "profiles_profiles_repository_profilesrepository",
+      "profiles_profiles_repository_profilesrepository_constructor",
+      "profiles_profiles_repository_profilesrepository_create",
+      "profiles_profiles_repository_profilesrepository_delete",
+      "profiles_profiles_repository_profilesrepository_findall",
+      "profiles_profiles_repository_profilesrepository_findbyid",
+      "profiles_profiles_repository_profilesrepository_findbyuserid",
+      "profiles_profiles_repository_profilesrepository_update",
+      "profiles_profiles_service_profilesservice_constructor",
+      "schemas_profile_schema_profiledocument"
+    ],
+    "5": [
+      "schemas_user_schema_userdocument",
+      "users_users_repository_usersrepository",
+      "users_users_repository_usersrepository_constructor",
+      "users_users_repository_usersrepository_create",
+      "users_users_repository_usersrepository_delete",
+      "users_users_repository_usersrepository_findall",
+      "users_users_repository_usersrepository_findbyemail",
+      "users_users_repository_usersrepository_findbyid",
+      "users_users_repository_usersrepository_update",
+      "users_users_service_usersservice_constructor"
+    ],
+    "6": [
+      "dto_profile_dto",
+      "dto_profile_dto_createprofiledto",
+      "dto_profile_dto_updateprofiledto",
+      "profiles_profiles_controller",
+      "profiles_profiles_controller_spec",
+      "profiles_profiles_service",
+      "profiles_profiles_service_spec",
+      "profiles_profiles_service_spec_createmockprofiledocument"
+    ],
+    "7": [
+      "dto_user_dto",
+      "dto_user_dto_createuserdto",
+      "dto_user_dto_updateuserdto",
+      "users_users_controller",
+      "users_users_controller_spec",
+      "users_users_service",
+      "users_users_service_spec",
+      "users_users_service_spec_createmockuserdocument"
+    ],
+    "8": [
+      "profiles_profiles_controller_profilescontroller",
+      "profiles_profiles_controller_profilescontroller_constructor",
+      "profiles_profiles_controller_profilescontroller_create",
+      "profiles_profiles_controller_profilescontroller_findall",
+      "profiles_profiles_controller_profilescontroller_findbyuser",
+      "profiles_profiles_controller_profilescontroller_findone",
+      "profiles_profiles_controller_profilescontroller_remove",
+      "profiles_profiles_controller_profilescontroller_update"
+    ],
+    "9": [
+      "users_users_controller_userscontroller",
+      "users_users_controller_userscontroller_constructor",
+      "users_users_controller_userscontroller_create",
+      "users_users_controller_userscontroller_findall",
+      "users_users_controller_userscontroller_findone",
+      "users_users_controller_userscontroller_remove",
+      "users_users_controller_userscontroller_update"
+    ],
+    "10": [
+      "profiles_profiles_module",
+      "profiles_profiles_repository",
+      "profiles_profiles_repository_spec",
+      "schemas_profile_schema",
+      "schemas_profile_schema_profileentity",
+      "schemas_profile_schema_profileschema"
+    ],
+    "11": [
+      "schemas_user_schema",
+      "schemas_user_schema_userentity",
+      "schemas_user_schema_userschema",
+      "users_users_module",
+      "users_users_repository",
+      "users_users_repository_spec"
+    ],
+    "12": [
+      "pipes_parse_object_id_pipe",
+      "pipes_parse_object_id_pipe_parseobjectidpipe",
+      "pipes_parse_object_id_pipe_parseobjectidpipe_transform",
+      "pipes_parse_object_id_pipe_spec"
+    ]
+  },
+  "cohesion": {
+    "0": 0.12807881773399016,
+    "1": 0.2631578947368421,
+    "2": 0.41818181818181815,
+    "3": 0.37777777777777777,
+    "4": 0.3111111111111111,
+    "5": 0.3111111111111111,
+    "6": 0.6785714285714286,
+    "7": 0.6785714285714286,
+    "8": 0.25,
+    "9": 0.2857142857142857,
+    "10": 0.8,
+    "11": 0.8,
+    "12": 0.6666666666666666
+  },
+  "gods": [
+    {
+      "id": "users_users_service_usersservice",
+      "label": "UsersService",
+      "degree": 15
+    },
+    {
+      "id": "profiles_profiles_repository_profilesrepository",
+      "label": "ProfilesRepository",
+      "degree": 13
+    },
+    {
+      "id": "profiles_profiles_service_profilesservice",
+      "label": "ProfilesService",
+      "degree": 13
+    },
+    {
+      "id": "users_users_repository_usersrepository",
+      "label": "UsersRepository",
+      "degree": 13
+    },
+    {
+      "id": "schemas_profile_schema_profiledocument",
+      "label": "ProfileDocument",
+      "degree": 12
+    },
+    {
+      "id": "schemas_user_schema_userdocument",
+      "label": "UserDocument",
+      "degree": 12
+    },
+    {
+      "id": "dto_profile_dto_profile",
+      "label": "Profile",
+      "degree": 11
+    },
+    {
+      "id": "dto_profile_dto_createprofiledto",
+      "label": "CreateProfileDto",
+      "degree": 10
+    },
+    {
+      "id": "dto_profile_dto_updateprofiledto",
+      "label": "UpdateProfileDto",
+      "degree": 10
+    },
+    {
+      "id": "profiles_profiles_controller_profilescontroller",
+      "label": "ProfilesController",
+      "degree": 10
+    }
+  ],
+  "surprises": [
+    {
+      "source": "createTestApp()",
+      "target": "configureApp()",
+      "source_files": [
+        "test/helpers/create-test-app.ts",
+        "src/setup-app.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories"
+    },
+    {
+      "source": "bootstrap()",
+      "target": "configureApp()",
+      "source_files": [
+        "src/main.ts",
+        "src/setup-app.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "peripheral node `bootstrap()` unexpectedly reaches hub `configureApp()`"
+    }
+  ],
+  "tokens": {
+    "input": 0,
+    "output": 0
+  }
+}

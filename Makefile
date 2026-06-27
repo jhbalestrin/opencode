@@ -4,7 +4,7 @@ CONFIG_DEST := $(HOME)/.config/opencode
 
 SKIP_PATTERNS := -name node_modules -o -name '*.swp' -o -name '*.bak'
 
-.PHONY: help check-ownership bootstrap link install-plugins sync status unlink clean-stale
+.PHONY: help check-ownership bootstrap link install-plugins install-graphify sync status unlink clean-stale
 
 help:
 	@echo "OpenCode dotfiles — manage ~/.config/opencode via symlinks"
@@ -16,6 +16,7 @@ help:
 	@echo "  make unlink          Remove symlinks pointing into this repo"
 	@echo "  make clean-stale     Remove orphan symlinks (source deleted from repo)"
 	@echo "  make install-plugins npm ci in ~/.config/opencode"
+	@echo "  make install-graphify Install graphifyy CLI + OpenCode skill"
 	@echo "  make check-ownership Verify config dir is writable"
 
 check-ownership:
@@ -74,6 +75,15 @@ install-plugins: check-ownership link
 	else \
 		echo "no package.json — skipping npm ci"; \
 	fi
+
+install-graphify:
+	@command -v uv >/dev/null 2>&1 || ( \
+		echo "error: uv not found — install from https://docs.astral.sh/uv/"; \
+		exit 1 \
+	)
+	uv tool install "graphifyy[sql,mcp]"
+	graphify install --platform opencode
+	@echo "graphify installed — copy new files from ~/.config/opencode/skills/graphify and plugins/ into config/, then make sync"
 
 sync: link install-plugins
 	@rm -f "$(CONFIG_DEST)/.opencode.json.swp" "$(CONFIG_DEST)/opencode.json.bak" 2>/dev/null || true

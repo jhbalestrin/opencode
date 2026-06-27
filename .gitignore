@@ -11,3 +11,7 @@ node_modules/
 testing_packages/**/node_modules/
 testing_packages/**/dist/
 testing_packages/**/coverage/
+testing_packages/**/graphify-out/cost.json
+
+# graphify installer may write here when run from repo root
+.opencode/
