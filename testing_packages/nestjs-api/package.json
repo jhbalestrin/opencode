@@ -16,6 +16,8 @@
     "test": "NODE_OPTIONS=--max-old-space-size=1024 jest --silent",
     "test:watch": "NODE_OPTIONS=--max-old-space-size=1024 jest --watch",
     "test:cov": "NODE_OPTIONS=--max-old-space-size=1024 jest --coverage --silent",
+    "coverage": "NODE_OPTIONS=--max-old-space-size=1024 node scripts/coverage.mjs",
+    "coverage:check": "node scripts/coverage-check.mjs",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/jest/bin/jest --runInBand",
     "test:e2e": "NODE_OPTIONS=--max-old-space-size=1024 jest --config ./test/jest-e2e.json --silent"
   },
@@ -108,7 +110,9 @@
           }
         }
       ],
-      "text-summary"
+      "text-summary",
+      "json-summary",
+      "json"
     ],
     "coverageThreshold": {
       "global": {

@@ -44,8 +44,12 @@ test/
 ```bash
 npm test              # unit tests (src/**/*.spec.ts)
 npm run test:cov      # unit tests + coverage (80% threshold)
+npm run coverage      # test:cov + write coverage/manifest.json with git commit hash
+npm run coverage:check # exit 1 if coverage/COMMIT != git rev-parse HEAD
 npm run test:e2e      # e2e tests (test/**/*.e2e-spec.ts)
 ```
+
+**Coverage freshness:** After `npm run coverage`, read `coverage/manifest.json` or `coverage/COMMIT` and compare to `git rev-parse HEAD`. If they differ (or `workingTreeDirty` is true), re-run coverage before trusting gaps.
 
 ### Unit test patterns
 
@@ -110,7 +114,7 @@ When the user types `/graphify`, invoke the `skill` tool with `skill: "graphify"
 
 ### Testing tasks (e.g. nestjs-testing, coverage)
 
-1. `npm run test:cov` — see current gaps and threshold.
+1. `npm run coverage:check` — if it passes, read `coverage/manifest.json` for gaps; otherwise `npm run coverage`.
 2. `graphify query "<what modules/layers need specs>"` — scoped test plan.
 3. Read [OVERVIEW.md](./OVERVIEW.md) test inventory + targeted specs/sources.
 4. Write tests; re-run `npm run test:cov` until the 80% threshold passes.
