@@ -4,10 +4,10 @@ import {
   Delete,
   Get,
   Param,
-  ParseIntPipe,
   Patch,
   Post,
 } from '@nestjs/common';
+import { ParseObjectIdPipe } from '../common/pipes/parse-object-id.pipe';
 import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
 import { UsersService } from './users.service';
 
@@ -21,7 +21,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id', ParseObjectIdPipe) id: string) {
     return this.usersService.findOne(id);
   }
 
@@ -32,15 +32,15 @@ export class UsersController {
 
   @Patch(':id')
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseObjectIdPipe) id: string,
     @Body() dto: UpdateUserDto,
   ) {
     return this.usersService.update(id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    this.usersService.remove(id);
+  async remove(@Param('id', ParseObjectIdPipe) id: string) {
+    await this.usersService.remove(id);
     return { deleted: true };
   }
 }
