@@ -84,13 +84,42 @@ npm run test:e2e      # e2e tests (test/**/*.e2e-spec.ts)
 
 ## graphify
 
-This project has a knowledge graph at `graphify-out/` with god nodes, community structure, and cross-file relationships.
+This project has a knowledge graph at `graphify-out/` (146 nodes, layered modules, test helpers, middleware stack). Use it **before** broad exploration or subagents.
 
 When the user types `/graphify`, invoke the `skill` tool with `skill: "graphify"` before doing anything else.
 
-Rules:
-- For codebase questions, first run `graphify query "<question>"` when `graphify-out/graph.json` exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+### When `graphify-out/graph.json` exists
+
+**Do this first** for architecture, testing, or “what files to touch” questions:
+
+1. Read this file (`AGENTS.md`) and [OVERVIEW.md](./OVERVIEW.md) — they are cheaper than re-discovering the repo.
+2. Run scoped graphify commands from the project root (pick the narrowest that fits):
+   ```bash
+   graphify query "what unit tests are missing for users and profiles"
+   graphify path "UsersController" "UsersService"
+   graphify explain "createTestApp"
+   ```
+3. Open **only** the source files graphify or OVERVIEW point at — not every file under `src/`.
+
+**Do not:**
+
+- Spawn `task` / explore subagents to “map the project” when the graph already exists.
+- Read all of `src/**/*.ts` or dump 30+ files into context upfront.
+- Read `graphify-out/GRAPH_REPORT.md` unless query/path/explain did not surface enough (it is broad; prefer query).
+- Skip graphify because `graphify-out/` looks dirty after hooks — dirty files are expected.
+
+### Testing tasks (e.g. nestjs-testing, coverage)
+
+1. `npm run test:cov` — see current gaps and threshold.
+2. `graphify query "<what modules/layers need specs>"` — scoped test plan.
+3. Read [OVERVIEW.md](./OVERVIEW.md) test inventory + targeted specs/sources.
+4. Write tests; re-run `npm run test:cov` until the 80% threshold passes.
+5. `graphify update .` once at the end (AST-only, no LLM cost).
+
+Do not run `graphify update .` before planning unless you changed structure and the graph is clearly stale.
+
+### Other rules
+
+- If `graphify-out/wiki/index.md` exists, use it for broad navigation instead of raw source browsing.
+- After modifying code, run `graphify update .` to keep the graph current.
+- Only skip graphify if the task is about fixing stale/incorrect graph output, or the user explicitly says not to use it.
